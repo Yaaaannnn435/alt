@@ -1,0 +1,73 @@
+import requests
+from bs4 import BeautifulSoup
+import smtplib
+from email.mime.text import MIMEText
+import json
+import os
+
+# 🔧 Paramètres
+KEYWORDS = [
+    "alternance BTS CIEL",
+    "alternance technicien réseaux",
+    "alternance technicien support",
+    "alternance cybersécurité"
+]
+SEARCH_URL = "https://www.hellowork.com/fr-fr/emploi/recherche.html?k=alternance&l=&mode=offres"
+SENT_OFFERS_FILE = "sent_offers.json"
+
+# 📬 Configuration e-mail
+SMTP_SERVER = "smtp.gmail.com"
+SMTP_PORT = 587
+EMAIL_FROM = "tonmail@gmail.com"
+EMAIL_TO = "tonmail@gmail.com"
+EMAIL_PASSWORD = "motdepasse-application"  # Utilise un mot de passe d'application si Gmail
+
+def load_sent_offers():
+    if os.path.exists(SENT_OFFERS_FILE):
+        with open(SENT_OFFERS_FILE, 'r') as f:
+            return json.load(f)
+    return []
+
+def save_sent_offers(offers):
+    with open(SENT_OFFERS_FILE, 'w') as f:
+        json.dump(offers, f)
+
+def send_email(subject, body):
+    msg = MIMEText(body)
+    msg['Subject'] = subject
+    msg['From'] = EMAIL_FROM
+    msg['To'] = EMAIL_TO
+
+    with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+        server.starttls()
+        server.login(EMAIL_FROM, EMAIL_PASSWORD)
+        server.send_message(msg)
+
+def find_new_offers():
+    print("[+] Scraping Hellowork...")
+    response = requests.get(SEARCH_URL)
+    soup = BeautifulSoup(response.text, 'html.parser')
+
+    offers = soup.find_all('a', class_="job-title")  # Cette classe peut changer selon les mises à jour du site
+    new_alerts = []
+    sent = load_sent_offers()
+
+    for offer in offers:
+        title = offer.get_text(strip=True)
+        link = offer['href']
+        if any(kw.lower() in title.lower() for kw in KEYWORDS):
+            if link not in sent:
+                new_alerts.append((title, link))
+                sent.append(link)
+
+    if new_alerts:
+        body = "\n\n".join([f"{title}\n{link}" for title, link in new_alerts])
+        send_email("🔔 Nouvelle offre d'alternance BTS CIEL détectée", body)
+        save_sent_offers(sent)
+        print(f"[+] {len(new_alerts)} nouvelle(s) offre(s) envoyée(s) par e-mail.")
+    else:
+        print("[=] Aucune nouvelle offre détectée.")
+
+if __name__ == "__main__":
+    find_new_offers()
+

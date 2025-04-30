@@ -20,7 +20,7 @@ SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 EMAIL_FROM = "tonmail@gmail.com"
 EMAIL_TO = "tonmail@gmail.com"
-EMAIL_PASSWORD = "motdepasse-application"  # Utilise un mot de passe d'application si Gmail
+EMAIL_PASSWORD = "motdepasse-application" 
 
 def load_sent_offers():
     if os.path.exists(SENT_OFFERS_FILE):
@@ -48,8 +48,7 @@ def find_new_offers():
     response = requests.get(SEARCH_URL)
     soup = BeautifulSoup(response.text, 'html.parser')
 
-    offers = soup.find_all('a', class_="job-title")  # Peut varier si le site change
-    new_alerts = []
+    offers = soup.find_all('a', class_="job-title") 
     sent = load_sent_offers()
 
     for offer in offers:
